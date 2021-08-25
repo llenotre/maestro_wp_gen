@@ -17,6 +17,9 @@ mod util;
 /// The path to the output file.
 const OUTPUT: &str = "output.jpg";
 
+/// The interval between points on curves.
+const CURVE_POINTS_INTERVAL: f32 = 100.;
+
 /// Prints command line usage.
 /// `bin` is the name of the binary in the command line.
 fn print_usage(bin: &String) {
@@ -30,29 +33,47 @@ wallpaper");
 	exit(1);
 }
 
+/// Structure representing a curve. A curve on this image is randomly generated and centered around
+/// a linear function.
+struct Curve {
+	/// The linear function's y intercept.
+	y_intercept: f32,
+	/// The linear function's slope.
+	slope: f32,
+
+	/// points placed at a fixed interval along the linear function, with their displacements from
+	/// the curve between -1. and 1.
+	points: Vec<f32>,
+}
+
 /// Generates the wallpaper with the given colors `primary` and `secondary` and seed `seed`.
 /// The wallpaper will have size `width`x`height`.
 fn generate(width: u32, height: u32, primary: &[u8; 3], secondary: &[u8; 3], mut seed: u64)
 	-> ImageBuffer<Rgb<u8>, Vec<u8>> {
-	// Vector containing points with coordinates plus a value. Each point represents a blob of
-	// light and the value represents its size
-	let mut points = Vec::new();
-	for i in 0..100 {
-		seed = lcg(seed); // TODO Reduce range
-		let x = seed;
-		seed = lcg(seed); // TODO Reduce range
-		let y = seed;
-		seed = lcg(seed); // TODO Reduce range
-		let v = seed;
+	let mut curves = Vec::new();
+	for i in 0..3 {
+		// Generate random values. The only condition is that the line shows in the image
+		let y_intercept = 0.; // TODO
+		let slope = 0.; // TODO
 
-		points.push((x, y, v));
+		// Compute the number of points from the length of the curve inside the image
+		let points_count = 0; // TODO
+		let mut points = Vec::new();
+
+		// Generating random point displacements
+		for i in 0..points_count {
+			points.push(0.); // TODO
+		}
+
+		curves.push(Curve {
+			y_intercept,
+			slope,
+
+			points,
+		});
 	}
 
-	// TODO Generate curves
-
 	ImageBuffer::from_fn(width, height, | x, y | {
-		// TODO Apply convolution RBF kernels on each points
-
 		// TODO Replace with curves
 		if 2 * x > y {
 			image::Rgb(*primary)
