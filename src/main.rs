@@ -31,10 +31,46 @@ fn generate(_primary: &[u8; 3], _secondary: &[u8; 3], _seed: u64) {
 	todo!();
 }
 
-/// Parses the given hexadecimal color `color`.
-fn parse_color(_color: &String) -> Result<[u8; 3], ()> {
-	// TODO
-	todo!();
+/// Parses the given hexadecimal color `hex`.
+fn parse_color(mut hex: String) -> Result<[u8; 3], ()> {
+	if hex.len() < 6 {
+		return Err(());
+	}
+
+	if hex.chars().next().unwrap() == '#' {
+		hex.remove(0);
+	}
+
+	if hex.len() != 6 {
+		return Err(());
+	}
+
+	// Closure to convert from char value to hexadecimal value
+	let convert = | v: u8 | {
+		if v >= b'0' && v <= b'9' {
+			v - b'0'
+		} else if v >= b'A' && v <= b'F' {
+			v - b'A'
+		} else {
+			v - b'a'
+		}
+	};
+
+	let mut color: [u8; 3] = [0; 3];
+	let mut iter = hex.chars();
+	let mut i = 0;
+	for c0 in iter.next() {
+		let c1 = iter.next().unwrap();
+
+		if !c0.is_ascii_hexdigit() || !c1.is_ascii_hexdigit() {
+			return Err(());
+		}
+
+		color[i] = convert(c0 as u8) * 16 + convert(c1 as u8);
+		i += 1;
+	}
+
+	Ok(color)
 }
 
 fn main() {
@@ -46,14 +82,14 @@ fn main() {
 	if args.len() < 3 {
 		print_usage(&args[0]);
 	} else {
-		let primary = parse_color(&args[1]);
+		let primary = parse_color(args[1].clone());
 		if primary.is_err() {
 			eprintln!("Invalid color primary `{}`!", args[1]);
 			exit(1);
 		}
 		let primary = primary.unwrap();
 
-		let secondary = parse_color(&args[2]);
+		let secondary = parse_color(args[2].clone());
 		if secondary.is_err() {
 			eprintln!("Invalid color secondary `{}`!", args[2]);
 			exit(1);
