@@ -9,16 +9,21 @@
 use std::env;
 use std::process::exit;
 
+use image::ImageBuffer;
+use image::Rgb;
+
 mod util;
 
 /// The path to the output file.
-const OUTPUT: &str = "output.png";
+const OUTPUT: &str = "output.jpg";
 
 /// Prints command line usage.
 /// `bin` is the name of the binary in the command line.
 fn print_usage(bin: &String) {
-	eprintln!("usage: {} <primary> <secondary> [seed]", bin);
+	eprintln!("usage: {} <width> <height> <primary> <secondary> [seed]", bin);
 	eprintln!();
+	eprintln!("`width` and `height` must be positive integers representing the size of the \
+wallpaper");
 	eprintln!("`primary` and `secondary` must be hexadecimal colors");
 	eprintln!("`seed` can be any string");
 	eprintln!("The resulting wallpaper is written to `{}`", OUTPUT);
@@ -26,9 +31,35 @@ fn print_usage(bin: &String) {
 }
 
 /// Generates the wallpaper with the given colors `primary` and `secondary` and seed `seed`.
-fn generate(_primary: &[u8; 3], _secondary: &[u8; 3], _seed: u64) {
-	// TODO
-	todo!();
+/// The wallpaper will have size `width`x`height`.
+fn generate(width: u32, height: u32, primary: &[u8; 3], secondary: &[u8; 3], mut seed: u64)
+	-> ImageBuffer<Rgb<u8>, Vec<u8>> {
+	// Vector containing points with coordinates plus a value. Each point represents a blob of
+	// light and the value represents its size
+	let mut points = Vec::new();
+	for i in 0..100 {
+		seed = lcg(seed); // TODO Reduce range
+		let x = seed;
+		seed = lcg(seed); // TODO Reduce range
+		let y = seed;
+		seed = lcg(seed); // TODO Reduce range
+		let v = seed;
+
+		points.push((x, y, v));
+	}
+
+	// TODO Generate curves
+
+	ImageBuffer::from_fn(width, height, | x, y | {
+		// TODO Apply convolution RBF kernels on each points
+
+		// TODO Replace with curves
+		if 2 * x > y {
+			image::Rgb(*primary)
+		} else {
+			image::Rgb(*secondary)
+		}
+	})
 }
 
 /// Parses the given hexadecimal color `hex`.
@@ -50,9 +81,9 @@ fn parse_color(mut hex: String) -> Result<[u8; 3], ()> {
 		if v >= b'0' && v <= b'9' {
 			v - b'0'
 		} else if v >= b'A' && v <= b'F' {
-			v - b'A'
+			10 + (v - b'A')
 		} else {
-			v - b'a'
+			10 + (v - b'a')
 		}
 	};
 
@@ -75,28 +106,42 @@ fn parse_color(mut hex: String) -> Result<[u8; 3], ()> {
 
 fn main() {
 	let args: Vec<String> = env::args().collect();
-	if args.len() == 0 || args.len() > 4 {
+	if args.len() == 0 || args.len() > 6 {
 		exit(1);
 	}
 
-	if args.len() < 3 {
+	if args.len() < 5 {
 		print_usage(&args[0]);
 	} else {
-		let primary = parse_color(args[1].clone());
+		let width = args[1].parse::<u32>();
+		if width.is_err() {
+			eprintln!("Invalid width `{}`!", args[1]);
+			exit(1);
+		}
+		let width = width.unwrap();
+
+		let height = args[2].parse::<u32>();
+		if height.is_err() {
+			eprintln!("Invalid height `{}`!", args[2]);
+			exit(1);
+		}
+		let height = height.unwrap();
+
+		let primary = parse_color(args[3].clone());
 		if primary.is_err() {
-			eprintln!("Invalid color primary `{}`!", args[1]);
+			eprintln!("Invalid color primary `{}`!", args[3]);
 			exit(1);
 		}
 		let primary = primary.unwrap();
 
-		let secondary = parse_color(args[2].clone());
+		let secondary = parse_color(args[4].clone());
 		if secondary.is_err() {
-			eprintln!("Invalid color secondary `{}`!", args[2]);
+			eprintln!("Invalid color secondary `{}`!", args[4]);
 			exit(1);
 		}
 		let secondary = secondary.unwrap();
 
-		let seed = if args.len() == 4 {
+		let seed = if args.len() == 6 {
 			// TODO Read seed
 			todo!();
 		} else {
@@ -104,7 +149,9 @@ fn main() {
 			0
 		};
 
-		generate(&primary, &secondary, seed);
-		// TODO Write to output file
+		let wallpaper = generate(width, height, &primary, &secondary, seed);
+		if wallpaper.save(OUTPUT).is_err() {
+			eprintln!("Cannot write to file `{}`!", OUTPUT);
+		}
 	}
 }
